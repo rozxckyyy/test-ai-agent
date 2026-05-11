@@ -1,4 +1,4 @@
-print("Hello, it's me! (no)"
+print("Hello, World!")
 
-def
+def greet():
     return "test"

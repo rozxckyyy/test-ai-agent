@@ -3,4 +3,4 @@ def divide(a: int, b: int) -> float:
 
 
 def calculate_discount(price: float, percent: float) -> float:
-    return price - percent
+    return price - (price * percent / 100)
