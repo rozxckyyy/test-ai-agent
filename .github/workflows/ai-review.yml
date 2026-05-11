@@ -21,15 +21,16 @@ jobs:
     runs-on: ubuntu-latest
 
     if: >
-        github.event_name == 'pull_request' ||
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
         (
-            github.event_name == 'issue_comment' &&
-            github.event.issue.pull_request &&
-            (
-            startsWith(github.event.comment.body, '/agent review') ||
-            startsWith(github.event.comment.body, '/agent explain')
-            )
+          startsWith(github.event.comment.body, '/agent review') ||
+          startsWith(github.event.comment.body, '/agent explain') ||
+          startsWith(github.event.comment.body, '/agent fix')
         )
+      )
 
     permissions:
       contents: read
@@ -61,18 +62,20 @@ jobs:
           GEMINI_MODEL: gemini-2.5-flash-lite
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-            if [ "${{ github.event_name }}" = "pull_request" ]; then
-                PR_NUMBER="${{ github.event.pull_request.number }}"
-                COMMAND="review"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            COMMAND="review"
+          else
+            PR_NUMBER="${{ github.event.issue.number }}"
+            COMMENT_BODY="${{ github.event.comment.body }}"
+
+            if [[ "$COMMENT_BODY" == /agent\ explain* ]]; then
+              COMMAND="explain"
+            elif [[ "$COMMENT_BODY" == /agent\ fix* ]]; then
+              COMMAND="fix"
             else
-                PR_NUMBER="${{ github.event.issue.number }}"
-                COMMENT_BODY="${{ github.event.comment.body }}"
-
-                if [[ "$COMMENT_BODY" == /agent\ explain* ]]; then
-                COMMAND="explain"
-                else
-                COMMAND="review"
-                fi
+              COMMAND="review"
             fi
+          fi
 
-            python -m src.main pr "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "$PR_NUMBER" --publish --command "$COMMAND"
+          python -m src.main pr "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "$PR_NUMBER" --publish --command "$COMMAND"
