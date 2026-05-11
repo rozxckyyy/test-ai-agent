@@ -7,6 +7,10 @@ on:
       - synchronize
       - reopened
 
+  issue_comment:
+    types:
+      - created
+
 permissions:
   contents: read
   pull-requests: write
@@ -16,17 +20,20 @@ jobs:
   ai-review:
     runs-on: ubuntu-latest
 
+    if: >
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        startsWith(github.event.comment.body, '/agent review')
+      )
+
     permissions:
       contents: read
       pull-requests: write
       issues: write
 
     steps:
-      - name: Checkout target repository
-        uses: actions/checkout@v4
-        with:
-          path: target-repo
-
       - name: Checkout AI agent repository
         uses: actions/checkout@v4
         with:
@@ -51,4 +58,10 @@ jobs:
           GEMINI_MODEL: gemini-2.5-flash-lite
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          python -m src.main pr "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "${{ github.event.pull_request.number }}" --publish
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          else
+            PR_NUMBER="${{ github.event.issue.number }}"
+          fi
+
+          python -m src.main pr "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "$PR_NUMBER" --publish
