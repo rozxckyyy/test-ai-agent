@@ -1,6 +1,6 @@
 checks:
   - name: Python syntax check
-    command: python -m compileall demo_project tests
+    command: python -m compileall demo tests
     timeout: 30
 
   - name: Pytest
