@@ -6,3 +6,10 @@ checks:
   - name: Pytest
     command: python -m pytest
     timeout: 120
+
+context:
+  include:
+    - demo/**/*.py
+    - tests/**/*.py
+  max_files: 40
+  max_chars_per_file: 20000
