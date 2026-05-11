@@ -1,0 +1,49 @@
+name: AI Review Agent
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          path: target-repo
+
+      - name: Checkout AI agent repository
+        uses: actions/checkout@v4
+        with:
+          repository: rozxckyyy/ai-review-agent
+          path: ai-review-agent
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install agent dependencies
+        working-directory: ai-review-agent
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run AI review agent
+        working-directory: ai-review-agent
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python -m src.main pr "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "${{ github.event.pull_request.number }}" --publish
