@@ -43,7 +43,7 @@ jobs:
         working-directory: ai-review-agent
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+          GEMINI_MODEL: ${{ env.GEMINI_MODEL }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           python -m src.main pr "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "${{ github.event.pull_request.number }}" --publish
