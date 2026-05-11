@@ -29,7 +29,8 @@ jobs:
           startsWith(github.event.comment.body, '/agent review') ||
           startsWith(github.event.comment.body, '/agent explain') ||
           startsWith(github.event.comment.body, '/agent fix') ||
-          startsWith(github.event.comment.body, '/agent auto-fix')
+          startsWith(github.event.comment.body, '/agent auto-fix') ||
+          startsWith(github.event.comment.body, '/agent revert-last-fix')
         )
       )
 
@@ -89,7 +90,9 @@ jobs:
             PR_NUMBER="${{ github.event.issue.number }}"
             COMMENT_BODY="${{ github.event.comment.body }}"
 
-            if [[ "$COMMENT_BODY" == /agent\ auto-fix* ]]; then
+            if [[ "$COMMENT_BODY" == /agent\ revert-last-fix* ]]; then
+              COMMAND="revert-last-fix"
+            elif [[ "$COMMENT_BODY" == /agent\ auto-fix* ]]; then
               COMMAND="auto-fix"
             elif [[ "$COMMENT_BODY" == /agent\ explain* ]]; then
               COMMAND="explain"
