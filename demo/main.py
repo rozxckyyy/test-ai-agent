@@ -1,4 +1,4 @@
-print("Hello, it's me! (no)")
+print("Hello, it's me! (no)"
 
-def my_function():
+def
     return "test"
