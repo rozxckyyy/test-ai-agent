@@ -12,7 +12,7 @@ on:
       - created
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
   issues: write
 
@@ -28,16 +28,36 @@ jobs:
         (
           startsWith(github.event.comment.body, '/agent review') ||
           startsWith(github.event.comment.body, '/agent explain') ||
-          startsWith(github.event.comment.body, '/agent fix')
+          startsWith(github.event.comment.body, '/agent fix') ||
+          startsWith(github.event.comment.body, '/agent auto-fix')
         )
       )
 
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
       issues: write
 
     steps:
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          path: target-repo
+          fetch-depth: 0
+
+      - name: Checkout pull request branch
+        working-directory: target-repo
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          else
+            PR_NUMBER="${{ github.event.issue.number }}"
+          fi
+
+          gh pr checkout "$PR_NUMBER"
+
       - name: Checkout AI agent repository
         uses: actions/checkout@v4
         with:
@@ -69,7 +89,9 @@ jobs:
             PR_NUMBER="${{ github.event.issue.number }}"
             COMMENT_BODY="${{ github.event.comment.body }}"
 
-            if [[ "$COMMENT_BODY" == /agent\ explain* ]]; then
+            if [[ "$COMMENT_BODY" == /agent\ auto-fix* ]]; then
+              COMMAND="auto-fix"
+            elif [[ "$COMMENT_BODY" == /agent\ explain* ]]; then
               COMMAND="explain"
             elif [[ "$COMMENT_BODY" == /agent\ fix* ]]; then
               COMMAND="fix"
@@ -78,4 +100,4 @@ jobs:
             fi
           fi
 
-          python -m src.main pr "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "$PR_NUMBER" --publish --command "$COMMAND"
+          python -m src.main pr "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "$PR_NUMBER" --publish --command "$COMMAND" --target-dir "../target-repo"
