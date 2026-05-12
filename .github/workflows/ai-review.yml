@@ -18,99 +18,13 @@ permissions:
 
 jobs:
   ai-review:
-    runs-on: ubuntu-latest
-
-    if: >
-      github.event_name == 'pull_request' ||
-      (
-        github.event_name == 'issue_comment' &&
-        github.event.issue.pull_request &&
-        (
-          startsWith(github.event.comment.body, '/agent review') ||
-          startsWith(github.event.comment.body, '/agent explain') ||
-          startsWith(github.event.comment.body, '/agent fix') ||
-          startsWith(github.event.comment.body, '/agent auto-fix') ||
-          startsWith(github.event.comment.body, '/agent revert-last-fix')
-        )
-      )
-
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-
-    steps:
-      - name: Checkout target repository
-        uses: actions/checkout@v4
-        with:
-          path: target-repo
-          fetch-depth: 0
-
-      - name: Checkout pull request branch
-        working-directory: target-repo
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            PR_NUMBER="${{ github.event.pull_request.number }}"
-          else
-            PR_NUMBER="${{ github.event.issue.number }}"
-          fi
-
-          gh pr checkout "$PR_NUMBER"
-
-      - name: Checkout AI agent repository
-        uses: actions/checkout@v4
-        with:
-          repository: rozxckyyy/ai-review-agent
-          path: ai-review-agent
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install target project test dependencies
-        working-directory: target-repo
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest
-
-      - name: Install agent dependencies
-        working-directory: ai-review-agent
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run AI review agent
-        working-directory: ai-review-agent
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: gemini-2.5-flash-lite
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            PR_NUMBER="${{ github.event.pull_request.number }}"
-            COMMAND="review"
-          else
-            PR_NUMBER="${{ github.event.issue.number }}"
-            COMMENT_BODY="${{ github.event.comment.body }}"
-
-            if [[ "$COMMENT_BODY" == /agent\ revert-last-fix* ]]; then
-              COMMAND="revert-last-fix"
-            elif [[ "$COMMENT_BODY" == /agent\ auto-fix* ]]; then
-              COMMAND="auto-fix"
-            elif [[ "$COMMENT_BODY" == /agent\ explain* ]]; then
-              COMMAND="explain"
-            elif [[ "$COMMENT_BODY" == /agent\ fix* ]]; then
-              COMMAND="fix"
-            else
-              COMMAND="review"
-            fi
-          fi
-
-          if [ "$COMMAND" = "review" ]; then
-            python -m src.main pr "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "$PR_NUMBER" --publish --command "$COMMAND" --target-dir "../target-repo" --fail-on-request-changes
-          else
-            python -m src.main pr "${{ github.repository_owner }}" "${{ github.event.repository.name }}" "$PR_NUMBER" --publish --command "$COMMAND" --target-dir "../target-repo"
-          fi
+    uses: rozxckyyy/ai-review-agent/.github/workflows/reusable-ai-review.yml@master
+    with:
+      gemini_model: gemini-2.5-flash-lite
+      python_version: "3.12"
+      target_setup_command: |
+        python -m pip install --upgrade pip
+        pip install pytest
+      fail_on_request_changes: true
+    secrets:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
